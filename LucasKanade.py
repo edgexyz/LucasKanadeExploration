@@ -71,6 +71,9 @@ class LucasKanadeInverse:
 
             q = Hessian_inv @ delta_p
             p_prime = self.optimize(p, q)
+            if p_prime == None:
+                return False
+            
             p = p_prime.copy()
 
             if np.linalg.norm(q) <= self.eps or i >= self.i_max:
@@ -158,7 +161,10 @@ class LucasKanadeInverse:
     def optimize(self, p: np.ndarray, q: np.ndarray) -> np.ndarray:
         A_p = self.parameters_to_matrix(p)
         A_q = self.parameters_to_matrix(q)
-        A_q_inv = np.linalg.inv(A_q)
+        try:
+            A_q_inv = np.linalg.inv(A_q)
+        except np.linalg.LinAlgError:
+            return None
 
         A_p_prime = A_p @ A_q_inv
         
