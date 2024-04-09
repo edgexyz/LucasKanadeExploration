@@ -29,9 +29,11 @@ class LucasKanadeInverse:
         self.I_center = np.array([0.5*self.I_length, 0.5*self.I_width])
 
     def run(self) -> bool:
+        #calculate gradient A.1
         R_x_grad_img, R_y_grad_img = self.gradient()
         R_x_grad = np.array(R_x_grad_img, dtype=np.float64)
         R_y_grad = np.array(R_y_grad_img, dtype=np.float64)
+        print("Gradient calculation successful.")
 
         S = np.zeros((self.R_length, self.R_width, self.n))
         Hessian = np.zeros((self.n, self.n))
@@ -53,14 +55,17 @@ class LucasKanadeInverse:
         except np.linalg.LinAlgError:
             return False # Hessian inversion failed
         
+        print("Hessian inversion successful.")
         p = self.p_init.copy()
         i = 0
 
         while True:
             i += 1
             delta_p = np.zeros(self.n)
+            print(f"Iteration {i}")
+            
+            for u in np.ndindex(self.R_arr.shape):
 
-            while u in np.ndindex(self.R_arr.shape):
                 R_coord = np.array(u) - self.R_center
                 R_coord_prime = self.wrap(R_coord, p)
 
@@ -72,8 +77,9 @@ class LucasKanadeInverse:
             q = Hessian_inv @ delta_p
             p_prime = self.optimize(p, q)
             p = p_prime.copy()
-
-            if np.linalg.norm(q) <= self.eps or i >= self.i_max:
+            loss = np.linalg.norm(q)
+            print(f"Loss: {loss}")
+            if loss <= self.eps or i >= self.i_max:
                 break
 
         if i < self.i_max:
@@ -113,8 +119,8 @@ class LucasKanadeInverse:
     def gradient(self) -> tuple[Image.Image, Image.Image]:
         # S for Sobel
         S_x_x = [[-1, 0, 1]]
-        S_x_y = [[3], [10], [3]]
-        S_y_x = [[3, 10, 3]]
+        S_x_y = [[1], [2], [1]]
+        S_y_x = [[1, 2, 1]]
         S_y_y = [[-1], [0], [1]]
 
         x_conv = Convolve.convolve(self.R, S_x_x)
