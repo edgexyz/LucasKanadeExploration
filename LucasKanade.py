@@ -1,10 +1,9 @@
 from PIL import Image
 import numpy as np
 import math
-
 from convolve import Convolve
 
-P_SIZE = 6 # doing affine transformation
+P_SIZE = 6 # doing projective transformation
 
 class LucasKanadeInverse:
     def __init__(self, I, R, eps, i_max):
@@ -25,8 +24,8 @@ class LucasKanadeInverse:
         self.R_width, self.R_length = R.size
         # Align with np array shape.
         # Reference point rather than used for accessing, so no need to round.
-        self.R_center = np.array([0.5*self.R_length, 0.5*self.R_width])
-        self.I_center = np.array([0.5*self.I_length, 0.5*self.I_width])
+        self.R_center = np.array([0.5*(self.R_length-1), 0.5*(self.R_width-1)])
+        self.I_center = np.array([0.5*(self.I_length-1), 0.5*(self.I_width-1)])
 
     def run(self) -> bool:
         #calculate gradient A.1
@@ -35,6 +34,7 @@ class LucasKanadeInverse:
         R_y_grad = np.array(R_y_grad_img, dtype=np.float64)
         print("Gradient calculation successful.")
 
+        #steepest descent image
         S = np.zeros((self.R_length, self.R_width, self.n))
         Hessian = np.zeros((self.n, self.n))
 
@@ -46,7 +46,7 @@ class LucasKanadeInverse:
 
             j = self.jacobian_for_identity_affine(coord)
             s = R_grad_row_vector @ j
-            S[u] = s.flatten()
+            S[u] = s
             h = np.outer(s, s)
             Hessian += h
 
@@ -54,7 +54,7 @@ class LucasKanadeInverse:
             Hessian_inv = np.linalg.inv(Hessian)
         except np.linalg.LinAlgError:
             return False # Hessian inversion failed
-        
+        print(f"Hessian_inv {Hessian_inv}")
         print("Hessian inversion successful.")
         p = self.p_init.copy()
         i = 0
@@ -70,18 +70,24 @@ class LucasKanadeInverse:
                 R_coord_prime = self.wrap(R_coord, p)
 
                 I_coord = np.array(R_coord_prime) + self.I_center
-                d = self.interpolate(self.I_arr, I_coord) - self.R_arr[u]
+                d = self.interpolate(self.I_arr,I_coord) - self.R_arr[u]
                 s = S[u]
+                # print(f"d*s: {d*s}")
                 delta_p += d * s
 
+            print(f"delta_p: {delta_p}")
             q = Hessian_inv @ delta_p
+            print(f"q: {q}")
             p_prime = self.optimize(p, q)
-            if p_prime == None:
+
+            if p_prime is None:
                 return False
-            
+            print(p_prime)
             p = p_prime.copy()
             loss = np.linalg.norm(q)
             print(f"Loss: {loss}")
+            if i%10 == 0:
+                print(f"p: {p}")
             if loss <= self.eps or i >= self.i_max:
                 break
 
@@ -148,21 +154,21 @@ class LucasKanadeInverse:
         return self.homogeneous_to_cartesian(xyz_prime)
     
     def interpolate(self, img: np.ndarray, coord: np.ndarray) -> float:
-        # Bilinear interpolation
-        y, x = np.clip(coord, [0, 0], np.array(img.shape) - 1)
+    # Ensure the coordinate is within image bounds
+        x, y = np.clip(coord, [0, 0], [img.shape[1] - 1, img.shape[0] - 1])
         xf, yf = int(x), int(y)
-        xc, yc = math.ceil(x), math.ceil(y)
+        xc, yc = np.ceil(x).astype(int), np.ceil(y).astype(int)
         
-        # Boundaries handling
-        yc = min(yc, img.shape[0] - 1)
+        # Ensure coordinates do not exceed image dimensions
         xc = min(xc, img.shape[1] - 1)
+        yc = min(yc, img.shape[0] - 1)
         
-        # Interpolation weights
+        # Calculate interpolation weights
         dx, dy = x - xf, y - yf
-        return (img[yf][xf] * (1 - dx) * (1 - dy) +
-                img[yf][xc] * dx * (1 - dy) +
-                img[yc][xf] * (1 - dx) * dy +
-                img[yc][xc] * dx * dy)
+        return (img[yf, xf] * (1 - dx) * (1 - dy) +
+                img[yf, xc] * dx * (1 - dy) +
+                img[yc, xf] * (1 - dx) * dy +
+                img[yc, xc] * dx * dy)
     
     def optimize(self, p: np.ndarray, q: np.ndarray) -> np.ndarray:
         A_p = self.parameters_to_matrix(p)
