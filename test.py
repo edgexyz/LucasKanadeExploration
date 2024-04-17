@@ -19,8 +19,8 @@ R = Image.open("woman_distort.png")
 if R.mode != "L":
     R = R.convert("L")
 
-eps = 0.001
-i_max = 100
+eps = 0.01
+i_max = 1000
 LK = LucasKanadeInverse(I, R, eps, i_max)
 LK.run()
 # print(images.shape)

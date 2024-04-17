@@ -68,11 +68,10 @@ class LucasKanadeInverse:
 
                 R_coord = np.array(u) - self.R_center
                 R_coord_prime = self.wrap(R_coord, p)
-
                 I_coord = np.array(R_coord_prime) + self.I_center
+                
                 d = self.interpolate(self.I_arr,I_coord) - self.R_arr[u]
                 s = S[u]
-                # print(f"d*s: {d*s}")
                 delta_p += d * s
 
             print(f"delta_p: {delta_p}")
@@ -82,12 +81,10 @@ class LucasKanadeInverse:
 
             if p_prime is None:
                 return False
-            print(p_prime)
+            print(f"p_prime: {p_prime}")
             p = p_prime.copy()
             loss = np.linalg.norm(q)
             print(f"Loss: {loss}")
-            if i%10 == 0:
-                print(f"p: {p}")
             if loss <= self.eps or i >= self.i_max:
                 break
 
@@ -115,13 +112,13 @@ class LucasKanadeInverse:
             return (y/z, x/z)
         
     def parameters_to_matrix(self, p: np.ndarray) -> np.ndarray:
-        return np.array([[p[0], p[1], p[4]],
-                         [p[2], p[3], p[5]],
+        return np.array([[p[0]+1, p[1], p[4]],
+                         [p[2], p[3]+1, p[5]],
                          [0, 0, 1]])
     
     def matrix_to_parameters(self, matrix: np.ndarray) -> np.ndarray:
-        return np.array([matrix[0][0], matrix[0][1], 
-                         matrix[1][0], matrix[1][1],  
+        return np.array([matrix[0][0]-1, matrix[0][1], 
+                         matrix[1][0], matrix[1][1]-1,  
                          matrix[0][2], matrix[1][2]])
 
     def gradient(self) -> tuple[Image.Image, Image.Image]:
@@ -154,21 +151,26 @@ class LucasKanadeInverse:
         return self.homogeneous_to_cartesian(xyz_prime)
     
     def interpolate(self, img: np.ndarray, coord: np.ndarray) -> float:
-    # Ensure the coordinate is within image bounds
-        x, y = np.clip(coord, [0, 0], [img.shape[1] - 1, img.shape[0] - 1])
+        # Ensure the coordinate is within image bounds
+        y, x = np.clip(coord, [0, 0], [img.shape[1] - 1, img.shape[0] - 1])
         xf, yf = int(x), int(y)
-        xc, yc = np.ceil(x).astype(int), np.ceil(y).astype(int)
+        xc, yc = xf+1, yf+1
         
         # Ensure coordinates do not exceed image dimensions
         xc = min(xc, img.shape[1] - 1)
         yc = min(yc, img.shape[0] - 1)
-        
-        # Calculate interpolation weights
-        dx, dy = x - xf, y - yf
-        return (img[yf, xf] * (1 - dx) * (1 - dy) +
-                img[yf, xc] * dx * (1 - dy) +
-                img[yc, xf] * (1 - dx) * dy +
-                img[yc, xc] * dx * dy)
+        a = x-xf
+        b = y-yf
+
+        A = img[yf, xf]
+        B = img[yf, xc]
+        C = img[yc, xf]
+        D = img[yc, xc]
+        E = A + a * (B - A)
+        F = C + a * (D - C)
+        G = E + b * (F - E)
+
+        return float(G)
     
     def optimize(self, p: np.ndarray, q: np.ndarray) -> np.ndarray:
         A_p = self.parameters_to_matrix(p)
