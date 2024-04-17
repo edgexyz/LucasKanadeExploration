@@ -182,3 +182,6 @@ class LucasKanadeInverse:
         A_p_prime = A_p @ A_q_inv
         
         return self.matrix_to_parameters(A_p_prime)
+    
+    def boundary_visualize():
+        pass
