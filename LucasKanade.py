@@ -3,7 +3,7 @@ import numpy as np
 import math
 from convolve import Convolve
 
-P_SIZE = 6 # doing projective transformation
+P_SIZE = 6 # doing affine transformation
 
 class LucasKanadeInverse:
     def __init__(self, I, R, eps, i_max):
