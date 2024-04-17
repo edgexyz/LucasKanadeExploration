@@ -1,0 +1,22 @@
+Lucas Kanade Technique
+    In 1D, registration problem may be formulated as finding the displacement t such that it minimizes the sum of the squared error between 2 functions.
+    \ve(t) = \sum_{}
+
+Inverse Compositional Algorithm
+    This algorithm inverts the role of search image and template (reference) image: template image is anchored unchanged and search image is wrapped to template image with a transformation T_p^{-1} (now T_p represents the transformation of the wrapped search image I' to I.) The algorithm's goal is to minimize \sum_{\textbf{u} \in R} \left[ R\left(T_{\textbf{q}}(\textbf{u})\right) - I\left(T_{\textbf{p}}(\textbf{u})\right) \right]^2 = \sum_{\textbf{u} \in R} \left[ R\left(T_{\textbf{0}}(\textbf{u})\right) + \nabla_R^{\texttt{T}}\left(T_{\textbf{0}}(\textbf{u})\right) \cdot\textbf{J}_{\textbf{0}}(\textbf{u})\cdot \textbf{q} - I\left(T_\textbf{p}(\textbf{u})\right) \right]^2 where T_{\textbf{0}} represents the identity transformation. Latter part by first order Taylor expansion.
+    Thus, we can write \textbf{q}_{\text{opt}} = H^{-1}\sum_{\textbf{u}\in R} \left[\nabla_R^{\texttt{T}}\left(T_{\textbf{0}}(\textbf{u})\right) \cdot\textbf{J}_{\textbf{0}}(\textbf{u})\right]^{\texttt{T}}(I\left(T_\textbf{p}(\textbf{u})\right)-R(\textbf{u})) where H is the Hessian matrix of identical transformation of template image R H = \sum_{\textbf{u}\in R} \left[\nabla_R^{\texttt{T}}\left(T_{\textbf{0}}(\textbf{u})\right) \cdot\textbf{J}_{\textbf{0}}(\textbf{u})\right]^{\texttt{T}}\left[\nabla_R^{\texttt{T}}\left(T_{\textbf{0}}(\textbf{u})\right) \cdot\textbf{J}_{\textbf{0}}(\textbf{u})\right].
+    Parameter \textbf{p} is simply updated by finding concatenation of geometric transformations T_{\textbf{q}_{\text{opt}}}^{-1} and T_{\textbf{p}}.That is T'_{\textbf{p}'}(x) = (T^{-1}_{\textbf{q}_{\text{opt}}} \circ T_{\textbf{p}})(x) = T_{\textbf{p}}(T^{-1}_{\textbf{q}_{\text{opt}}}(x)). In linear transformations, this can be written as \textbf{A}_{\textbf{p}'} = \textbf{A}_{\textbf{p}}\cdot \textbf{A}_{\textbf{q}_{\text{opt}}}^{-1}
+
+First order tylor expansion
+    a way to approximate a function using a linear expression, based on the function's value and its derivative at a specific point. The first-order Taylor expansion focuses on the initial part of this series, using only the function's value and its first derivative. f(x) \approx f(a) + f'(a)(x - a) or multi-dimentionally, f(\mathbf{x}) \approx f(\mathbf{a}) + \nabla f(\mathbf{a}) \cdot (\mathbf{x} - \mathbf{a})
+
+Pixel interpolation
+    using bilinear interpolation (explain)
+    Bilinear interpolation is a mathematical method used to estimate intermediate values within a two-dimensional grid. This technique is particularly useful in image processing and computer graphics for resizing or scaling images. It works by considering the closest four points (in a square or rectangular grid) around the target point and interpolating the values both horizontally and vertically. This process effectively smooths transitions, providing a more natural-looking result than nearest-neighbor interpolation, which can appear blocky or pixelated.
+
+Derivative kernels
+    (放图？)
+    gradient - sobel (explain)
+    x/y sobel matrix
+    Hessian (explain)
+    n by n matrix representing all possible second derivatives of a function. Can be approximated by 
