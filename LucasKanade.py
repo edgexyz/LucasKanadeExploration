@@ -54,7 +54,7 @@ class LucasKanadeInverse:
             Hessian_inv = np.linalg.inv(Hessian)
         except np.linalg.LinAlgError:
             return False # Hessian inversion failed
-        print(f"Hessian_inv {Hessian_inv}")
+        # print(f"Hessian_inv {Hessian_inv}")
         print("Hessian inversion successful.")
         p = self.p_init.copy()
         i = 0
@@ -74,9 +74,8 @@ class LucasKanadeInverse:
                 s = S[u]
                 delta_p += d * s
 
-            print(f"delta_p: {delta_p}")
             q = Hessian_inv @ delta_p
-            print(f"q: {q}")
+
             p_prime = self.optimize(p, q)
 
             if p_prime is None:
