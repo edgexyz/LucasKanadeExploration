@@ -1,6 +1,5 @@
 from PIL import Image
 import numpy as np
-import math
 from convolve import Convolve
 
 P_SIZE = 6 # doing affine transformation
