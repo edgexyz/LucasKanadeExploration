@@ -22,7 +22,10 @@ if R.mode != "L":
 eps = 0.001
 i_max = 1000
 LK = LucasKanadeInverse(I, R, eps, i_max)
-LK.run()
+if LK.run():
+    LK.plot_loss_curve()
+else:
+    print("Failed to converge")
 # print(images.shape)
 # image1 = scale_image_to_255(images[:, :, 2])
 # print(image1.shape)
