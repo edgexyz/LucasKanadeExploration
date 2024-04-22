@@ -13,15 +13,19 @@ def scale_image_to_255(image):
     return scaled_image
 
 I = Image.open("woman.png")
+print(I.size)
 if I.mode != "L":
     I = I.convert("L")
 R = Image.open("woman_distort.png")
+print(R.size)
 if R.mode != "L":
     R = R.convert("L")
 
-eps = 0.001
+R_width, R_length = R.size
+eps = 0.0001
 i_max = 100
-LK = LucasKanadeInverse(I, R, eps, i_max)
+p_init = np.array([1, 0, 0, 1, int(R_width/2), 0])
+LK = LucasKanadeInverse(I, R, eps, i_max, p_init)
 success = LK.run()
 
 for i in range(LK.total_iter):

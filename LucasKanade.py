@@ -5,7 +5,7 @@ from convolve import Convolve
 P_SIZE = 6 # doing affine transformation
 
 class LucasKanadeInverse:
-    def __init__(self, I, R, eps, i_max):
+    def __init__(self, I, R, eps, i_max, p_init):
         self.I = I
         self.R = R
 
@@ -17,7 +17,7 @@ class LucasKanadeInverse:
         self.i_max = i_max
         self.total_iter = i_max
         self.n = P_SIZE
-        self.p_init = np.array([1, 0, 0, 1, 0, 0]) # Shape according to textbook.
+        self.p_init = p_init # Shape according to textbook.
         self.p_opt = None 
 
         self.I_width, self.I_length = I.size
@@ -191,10 +191,10 @@ class LucasKanadeInverse:
         a = x-xf
         b = y-yf
 
-        A = img[yf, xf]
-        B = img[yf, xc]
-        C = img[yc, xf]
-        D = img[yc, xc]
+        A = float(img[yf, xf])
+        B = float(img[yf, xc])
+        C = float(img[yc, xf])
+        D = float(img[yc, xc])
         E = A + a * (B - A)
         F = C + a * (D - C)
         G = E + b * (F - E)
