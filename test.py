@@ -26,7 +26,10 @@ eps = 0.0001
 i_max = 100
 p_init = np.array([1, 0, 0, 1, int(R_width/2), 0])
 LK = LucasKanadeInverse(I, R, eps, i_max, p_init)
-success = LK.run()
+if LK.run():
+    LK.plot_loss_curve()
+else:
+    print("Failed to converge")
 
 for i in range(LK.total_iter):
     iter_img = LK.boundary_visualize(i, (255, 0, 0))

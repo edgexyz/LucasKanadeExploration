@@ -1,6 +1,7 @@
 from PIL import Image
 import numpy as np
 from convolve import Convolve
+from matplotlib import pyplot as plt
 
 P_SIZE = 6 # doing affine transformation
 
@@ -19,6 +20,7 @@ class LucasKanadeInverse:
         self.n = P_SIZE
         self.p_init = p_init # Shape according to textbook.
         self.p_opt = None 
+        self.losses = [] 
 
         self.I_width, self.I_length = I.size
         self.R_width, self.R_length = R.size
@@ -60,7 +62,7 @@ class LucasKanadeInverse:
         print("Hessian inversion successful.")
         p = self.p_init.copy()
         i = 0
-
+        self.losses.clear()
         while True:
             i += 1
             delta_p = np.zeros(self.n)
@@ -91,6 +93,7 @@ class LucasKanadeInverse:
             # print(f"p_prime: {p_prime}")
             p = p_prime.copy()
             loss = np.linalg.norm(q)
+            self.losses.append(loss)
             print(f"Loss: {loss}")
             if loss <= self.eps or i >= self.i_max:
                 break
@@ -213,6 +216,17 @@ class LucasKanadeInverse:
         
         return self.matrix_to_parameters(A_p_prime)
     
+
+    def plot_loss_curve(self):
+        plt.figure(figsize=(10, 5))
+        plt.plot(self.losses, label='Loss over iterations')
+        plt.xlabel('Iteration')
+        plt.ylabel('Loss')
+        plt.title('Loss Curve of Lucas-Kanade Inverse')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig('loss_curve.png')
+
     def boundary_visualize(self, iter: int, color: tuple) -> Image.Image:
         boundary_list = self.iter_boundaries[iter]
         boundary_img = self.I.convert("RGB")
@@ -221,3 +235,4 @@ class LucasKanadeInverse:
             boundary_img.putpixel((u, v), color)
         
         return boundary_img
+
