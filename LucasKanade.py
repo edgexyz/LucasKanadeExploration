@@ -3,10 +3,10 @@ import numpy as np
 from convolve import Convolve
 from matplotlib import pyplot as plt
 
-P_SIZE = 6 # doing projective transformation
+P_SIZE = 6 # doing affine transformation
 
 class LucasKanadeInverse:
-    def __init__(self, I, R, eps, i_max):
+    def __init__(self, I, R, eps, i_max, p_init):
         self.I = I
         self.R = R
 
@@ -16,8 +16,9 @@ class LucasKanadeInverse:
 
         self.eps = eps
         self.i_max = i_max
+        self.total_iter = i_max
         self.n = P_SIZE
-        self.p_init = np.array([1, 0, 0, 1, 0, 0]) # Shape according to textbook.
+        self.p_init = p_init # Shape according to textbook.
         self.p_opt = None 
         self.losses = [] 
 
@@ -27,6 +28,8 @@ class LucasKanadeInverse:
         # Reference point rather than used for accessing, so no need to round.
         self.R_center = np.array([0.5*(self.R_length-1), 0.5*(self.R_width-1)])
         self.I_center = np.array([0.5*(self.I_length-1), 0.5*(self.I_width-1)])
+
+        self.iter_boundaries = []
 
     def run(self) -> bool:
         #calculate gradient A.1
@@ -64,12 +67,18 @@ class LucasKanadeInverse:
             i += 1
             delta_p = np.zeros(self.n)
             print(f"Iteration {i}")
+            self.iter_boundaries.append([])
             
             for u in np.ndindex(self.R_arr.shape):
 
                 R_coord = np.array(u) - self.R_center
                 R_coord_prime = self.wrap(R_coord, p)
                 I_coord = np.array(R_coord_prime) + self.I_center
+
+                
+                if self.check_boundary(u, self.R_arr.shape):
+                    I_coord_round = self.round_and_check(I_coord, self.I_arr.shape)
+                    self.iter_boundaries[i-1].append(I_coord_round)
                 
                 d = self.interpolate(self.I_arr,I_coord) - self.R_arr[u]
                 s = S[u]
@@ -81,7 +90,7 @@ class LucasKanadeInverse:
 
             if p_prime is None:
                 return False
-            print(f"p_prime: {p_prime}")
+            # print(f"p_prime: {p_prime}")
             p = p_prime.copy()
             loss = np.linalg.norm(q)
             self.losses.append(loss)
@@ -91,9 +100,31 @@ class LucasKanadeInverse:
 
         if i < self.i_max:
             self.p_opt = p.copy()
+            self.total_iter = i
+
             return True
         else:
             return False
+        
+    def check_boundary(self, coord: tuple, shape: tuple) -> bool:
+        rows, cols = shape
+        i, j = coord
+
+        return i == 0 or j == 0 or i == rows-1 or j == cols-1
+    
+    def round_and_check(self, coord: np.ndarray, reference_shape: tuple):
+        # Step 1: Round the coordinates
+        rounded_coord = np.round(coord).astype(int)
+        
+        # Step 2: Convert to tuple
+        rounded_coord_tuple = tuple(rounded_coord)
+        
+        # Step 3: Ensure the coordinates are within the array's range
+        # Clipping each coordinate to the range [0, dimension_size - 1]
+        checked_coord = (min(max(rounded_coord_tuple[0], 0), reference_shape[0] - 1),
+                        min(max(rounded_coord_tuple[1], 0), reference_shape[1] - 1))
+        
+        return checked_coord
 
     def cartesian_to_homogeneous(self, coord: tuple) -> np.ndarray:
         y, x = coord
@@ -125,8 +156,8 @@ class LucasKanadeInverse:
     def gradient(self) -> tuple[Image.Image, Image.Image]:
         # S for Sobel
         S_x_x = [[-1, 0, 1]]
-        S_x_y = [[1], [2], [1]]
-        S_y_x = [[1, 2, 1]]
+        S_x_y = [[3], [10], [3]]
+        S_y_x = [[3, 10, 3]]
         S_y_y = [[-1], [0], [1]]
 
         x_conv = Convolve.convolve(self.R, S_x_x)
@@ -163,10 +194,10 @@ class LucasKanadeInverse:
         a = x-xf
         b = y-yf
 
-        A = img[yf, xf]
-        B = img[yf, xc]
-        C = img[yc, xf]
-        D = img[yc, xc]
+        A = float(img[yf, xf])
+        B = float(img[yf, xc])
+        C = float(img[yc, xf])
+        D = float(img[yc, xc])
         E = A + a * (B - A)
         F = C + a * (D - C)
         G = E + b * (F - E)
@@ -185,6 +216,7 @@ class LucasKanadeInverse:
         
         return self.matrix_to_parameters(A_p_prime)
     
+
     def plot_loss_curve(self):
         plt.figure(figsize=(10, 5))
         plt.plot(self.losses, label='Loss over iterations')
@@ -194,3 +226,13 @@ class LucasKanadeInverse:
         plt.legend()
         plt.grid(True)
         plt.savefig('loss_curve.png')
+
+    def boundary_visualize(self, iter: int, color: tuple) -> Image.Image:
+        boundary_list = self.iter_boundaries[iter]
+        boundary_img = self.I.convert("RGB")
+
+        for (v, u) in boundary_list:
+            boundary_img.putpixel((u, v), color)
+        
+        return boundary_img
+
