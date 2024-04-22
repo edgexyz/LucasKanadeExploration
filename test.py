@@ -12,17 +12,21 @@ def scale_image_to_255(image):
     scaled_image = (normalized_image * 255).astype(np.uint8)
     return scaled_image
 
-I = Image.open("man.png")
+I = Image.open("woman.png")
 if I.mode != "L":
     I = I.convert("L")
-R = Image.open("man_distort.png")
+R = Image.open("woman_distort.png")
 if R.mode != "L":
     R = R.convert("L")
 
 eps = 0.001
-i_max = 1000
+i_max = 100
 LK = LucasKanadeInverse(I, R, eps, i_max)
-LK.run()
+success = LK.run()
+
+for i in range(LK.total_iter):
+    iter_img = LK.boundary_visualize(i, (255, 0, 0))
+    iter_img.save(f"./test_results/woman_iter_{i}.png")
 # print(images.shape)
 # image1 = scale_image_to_255(images[:, :, 2])
 # print(image1.shape)
