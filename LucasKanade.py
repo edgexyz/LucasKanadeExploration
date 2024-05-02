@@ -6,7 +6,34 @@ from matplotlib import pyplot as plt
 P_SIZE = 6 # doing affine transformation
 
 class LucasKanadeInverse:
+    """
+    Implements the Lucas-Kanade Inverse Compositional algorithm for image alignment using
+    affine transformations. This class aligns a template image (R) to an input image (I)
+    by iteratively adjusting the affine parameters to minimize the difference between
+    the transformed template and the input image.
+
+    Attributes:
+        I (Image): The input image in which the template will be aligned.
+        R (Image): The template image that needs to be aligned to the input image.
+        eps (float): The convergence threshold for the optimization process.
+        i_max (int): Maximum number of iterations to perform.
+        p_init (np.ndarray): Initial parameters for the affine transformation.
+        p_opt (np.ndarray): Optimized parameters after running the algorithm.
+        losses (list): A list to store the loss at each iteration for monitoring convergence.
+        iter_boundaries (list): List of boundaries at each iteration for visualization.
+    """
     def __init__(self, I, R, eps, i_max, p_init):
+        """
+        Initializes the LucasKanadeInverse object with the input and reference images,
+        convergence criteria, maximum number of iterations, and initial transformation parameters.
+
+        Parameters:
+            I (Image): The input image.
+            R (Image): The reference or template image.
+            eps (float): Convergence threshold.
+            i_max (int): Maximum number of iterations allowed.
+            p_init (np.ndarray): Initial guess of the affine parameters.
+        """
         self.I = I
         self.R = R
 
@@ -32,7 +59,15 @@ class LucasKanadeInverse:
         self.iter_boundaries = []
 
     def run(self) -> bool:
-        #calculate gradient A.1
+        """
+        Executes the Lucas-Kanade algorithm to find the optimal affine parameters
+        that align the template image to the input image. 
+
+        Returns:
+            bool: True if the algorithm converges within the specified number of iterations,
+                  False otherwise.
+        """
+        #calculate gradient
         R_x_grad_img, R_y_grad_img = self.gradient()
         R_x_grad = np.array(R_x_grad_img, dtype=np.float64)
         R_y_grad = np.array(R_y_grad_img, dtype=np.float64)
@@ -58,7 +93,7 @@ class LucasKanadeInverse:
             Hessian_inv = np.linalg.inv(Hessian)
         except np.linalg.LinAlgError:
             return False # Hessian inversion failed
-        # print(f"Hessian_inv {Hessian_inv}")
+        
         print("Hessian inversion successful.")
         p = self.p_init.copy()
         i = 0
@@ -90,7 +125,7 @@ class LucasKanadeInverse:
 
             if p_prime is None:
                 return False
-            # print(f"p_prime: {p_prime}")
+
             p = p_prime.copy()
             loss = np.linalg.norm(q)
             self.losses.append(loss)
@@ -107,12 +142,32 @@ class LucasKanadeInverse:
             return False
         
     def check_boundary(self, coord: tuple, shape: tuple) -> bool:
+        """
+        Checks if the given coordinate is on the boundary of the image.
+
+        Parameters:
+            coord (tuple): The coordinate (row, column) to check.
+            shape (tuple): The dimensions (rows, columns) of the image.
+
+        Returns:
+            bool: True if the coordinate is on the boundary, False otherwise.
+        """
         rows, cols = shape
         i, j = coord
 
         return i == 0 or j == 0 or i == rows-1 or j == cols-1
     
     def round_and_check(self, coord: np.ndarray, reference_shape: tuple):
+        """
+        Rounds coordinates to integer values and checks if they are within the image boundaries.
+
+        Parameters:
+            coord (np.ndarray): The coordinate to round and check.
+            reference_shape (tuple): The dimensions (rows, columns) of the reference image.
+
+        Returns:
+            tuple: Rounded and checked coordinate.
+        """
         # Step 1: Round the coordinates
         rounded_coord = np.round(coord).astype(int)
         
@@ -127,12 +182,30 @@ class LucasKanadeInverse:
         return checked_coord
 
     def cartesian_to_homogeneous(self, coord: tuple) -> np.ndarray:
+        """
+        Converts Cartesian coordinates to homogeneous coordinates.
+
+        Parameters:
+            coord (tuple): A tuple of (y, x) coordinates.
+
+        Returns:
+            np.ndarray: Corresponding homogeneous coordinates as a column vector.
+        """
         y, x = coord
         arr = np.array([x, y, 1])
 
         return arr[:, np.newaxis] # Column vector
 
     def homogeneous_to_cartesian(self, coord: np.ndarray) -> tuple:
+        """
+        Converts homogeneous coordinates back to Cartesian coordinates.
+
+        Parameters:
+            coord (np.ndarray): Homogeneous coordinates as a column vector.
+
+        Returns:
+            tuple: Corresponding Cartesian coordinates (y, x).
+        """
         x = coord[0][0]
         y = coord[1][0]
         z = coord[2][0]
@@ -144,16 +217,41 @@ class LucasKanadeInverse:
             return (y/z, x/z)
         
     def parameters_to_matrix(self, p: np.ndarray) -> np.ndarray:
+        """
+        Converts a parameter vector into an affine transformation matrix.
+
+        Parameters:
+            p (np.ndarray): Parameter vector representing the affine transformation.
+
+        Returns:
+            np.ndarray: Corresponding 3x3 affine transformation matrix.
+        """
+
         return np.array([[p[0]+1, p[1], p[4]],
                          [p[2], p[3]+1, p[5]],
                          [0, 0, 1]])
     
     def matrix_to_parameters(self, matrix: np.ndarray) -> np.ndarray:
+        """
+        Converts an affine transformation matrix back to a parameter vector.
+
+        Parameters:
+            matrix (np.ndarray): A 3x3 affine transformation matrix.
+
+        Returns:
+            np.ndarray: Corresponding parameter vector.
+        """
         return np.array([matrix[0][0]-1, matrix[0][1], 
                          matrix[1][0], matrix[1][1]-1,  
                          matrix[0][2], matrix[1][2]])
 
     def gradient(self) -> tuple[Image.Image, Image.Image]:
+        """
+        Computes the gradient of the template image using a Sobel operator.
+
+        Returns:
+            tuple[Image.Image, Image.Image]: Gradient images in x and y directions.
+        """
         # S for Sobel
         S_x_x = [[-1, 0, 1]]
         S_x_y = [[3], [10], [3]]
@@ -169,6 +267,15 @@ class LucasKanadeInverse:
         return (x_conv, y_conv)
 
     def jacobian_for_identity_affine(self, coord: np.ndarray) -> np.ndarray:
+        """
+        Computes the Jacobian matrix of the affine transformation at a given coordinate.
+
+        Parameters:
+            coord (np.ndarray): The coordinate (y, x) at which to evaluate the Jacobian.
+
+        Returns:
+            np.ndarray: Jacobian matrix for the identity-affine transformation.
+        """
         y, x = tuple(coord) # numpy indexing
         matrix = [[x, y, 0, 0, 1, 0], 
                   [0, 0, x, y, 0, 1]]
@@ -176,6 +283,16 @@ class LucasKanadeInverse:
         return np.array(matrix)
     
     def wrap(self, coord: tuple, p: np.ndarray) -> tuple:
+        """
+        Applies an affine transformation to a given coordinate using the current parameters.
+
+        Parameters:
+            coord (tuple): Original Cartesian coordinates (y, x).
+            p (np.ndarray): Current affine transformation parameters.
+
+        Returns:
+            tuple: Transformed coordinates (y, x) after applying the affine transformation.
+        """
         xyz = self.cartesian_to_homogeneous(coord)
         matrix = self.parameters_to_matrix(p)
         
@@ -183,6 +300,16 @@ class LucasKanadeInverse:
         return self.homogeneous_to_cartesian(xyz_prime)
     
     def interpolate(self, img: np.ndarray, coord: np.ndarray) -> float:
+        """
+        Performs bilinear interpolation to estimate the intensity at non-integer coordinates.
+
+        Parameters:
+            img (np.ndarray): Image array in which to interpolate.
+            coord (np.ndarray): The coordinate (y, x) at which to interpolate.
+
+        Returns:
+            float: Interpolated intensity value at the given coordinate.
+        """
         # Ensure the coordinate is within image bounds
         y, x = np.clip(coord, [0, 0], [img.shape[1] - 1, img.shape[0] - 1])
         xf, yf = int(x), int(y)
@@ -205,6 +332,16 @@ class LucasKanadeInverse:
         return float(G)
     
     def optimize(self, p: np.ndarray, q: np.ndarray) -> np.ndarray:
+        """
+        Updates the parameter vector using an inverse compositional step.
+
+        Parameters:
+            p (np.ndarray): Current parameter vector.
+            q (np.ndarray): Increment vector computed from the gradient.
+
+        Returns:
+            np.ndarray: Updated parameter vector after applying the increment.
+        """
         A_p = self.parameters_to_matrix(p)
         A_q = self.parameters_to_matrix(q)
         try:
@@ -218,6 +355,10 @@ class LucasKanadeInverse:
     
 
     def plot_loss_curve(self):
+        """
+        Plots the loss curve of the Lucas-Kanade optimization process.
+        Saves the plot as 'loss_curve.png'.
+        """
         plt.figure(figsize=(10, 5))
         plt.plot(self.losses, label='Loss over iterations')
         plt.xlabel('Iteration')
@@ -228,6 +369,16 @@ class LucasKanadeInverse:
         plt.savefig('loss_curve.png')
 
     def boundary_visualize(self, iter: int, color: tuple) -> Image.Image:
+        """
+        Visualizes the boundaries at a given iteration of the optimization process on the input image.
+
+        Parameters:
+            iter (int): The iteration number to visualize.
+            color (tuple): RGB tuple for the boundary color.
+
+        Returns:
+            Image.Image: The input image with the boundaries highlighted.
+        """
         boundary_list = self.iter_boundaries[iter]
         boundary_img = self.I.convert("RGB")
 
