@@ -101,7 +101,6 @@ class LucasKanadeInverse:
         while True:
             i += 1
             delta_p = np.zeros(self.n)
-            print(f"Iteration {i}")
             self.iter_boundaries.append([])
             
             for u in np.ndindex(self.R_arr.shape):
@@ -129,7 +128,6 @@ class LucasKanadeInverse:
             p = p_prime.copy()
             loss = np.linalg.norm(q)
             self.losses.append(loss)
-            print(f"Loss: {loss}")
             if loss <= self.eps or i >= self.i_max:
                 break
 
@@ -370,7 +368,7 @@ class LucasKanadeInverse:
 
     def boundary_visualize(self, iter: int, color: tuple) -> Image.Image:
         """
-        Visualizes the boundaries at a given iteration of the optimization process on the input image.
+        Visualizes the boundaries at a given iteration of the optimization process on the search image.
 
         Parameters:
             iter (int): The iteration number to visualize.
