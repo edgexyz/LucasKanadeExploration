@@ -1,6 +1,9 @@
 from PIL import Image
 
 class Convolve:
+    """
+    A class designed perform image matric convolution with boundary checks.
+    """
     def check_range(loc, range):
         """
         Ensures that a given location value stays within a specified range by mirroring
@@ -57,6 +60,3 @@ class Convolve:
         
         return convolved
     
-
-# test = [[-1], [0], [1]]
-# print(sum([abs(element) for row in test for element in row]))
